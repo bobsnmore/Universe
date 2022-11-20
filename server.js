@@ -32,7 +32,7 @@ app.use(function(req, res, next) {
 });
 
 // Routes
-app.route("/universe").get(getId);
+app.route("/universeId").get(getId);
 
 // Initializer 
 app.listen(PORT, () => {
