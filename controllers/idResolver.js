@@ -12,7 +12,7 @@
 */ 
 import fetch, { Headers } from "node-fetch";
 
-const MAX_CACHE_SIZE = 700;
+const MAX_CACHE_SIZE = 1000;
 
 let idCache = {};
 let cacheSize = 0;
@@ -52,16 +52,29 @@ export function getId (req, res) {
                     let universeIds = [];
                     for (let placeId of placeIds) {
                         if (idCache[placeId.toString()]) {
-                            universeIds.push(idCache[placeId.toString()]);
+                            universeIds.push(idCache[placeId.toString()].universeId);
                         } else {
                             let result = json.find(result => result.placeId == placeId);
                             if (result != undefined) {
                                 universeIds.push(result.universeId);
-                                idCache[placeId.toString()] = result.universeId;
+                                idCache[placeId.toString()] = {
+                                    universeId: result.universeId,
+                                    cachedAt: Date.now()
+                                };
                                 
-                                if (cacheSize > MAX_CACHE_SIZE) {
-                                    let keys = Object.keys(idCache);
-                                    delete idCache[keys[0]];
+                                if (cacheSize >= MAX_CACHE_SIZE) {
+                                    let currentTime = Date.now();
+                                    let oldestKey = undefined;
+                                    let oldestValue = undefined;
+                                    for (let [key, value] of Object.entries(idCache)) {   
+                                        if (oldestKey == undefined || (currentTime - oldestValue.cachedAt) < (currentTime - value.cachedAt)) {
+                                            oldestKey = key;
+                                            oldestValue = value;
+                                        }
+                                    }
+                                    if (oldestKey != undefined) {
+                                        delete idCache[oldestKey];
+                                    }
                                 } else {
                                     cacheSize += 1;
                                 }
@@ -80,7 +93,7 @@ export function getId (req, res) {
     } else {
         let universeIds = [];
         for (let placeId of placeIds) {
-            universeIds.push(idCache[placeId.toString()]);
+            universeIds.push(idCache[placeId.toString()].universeId);
         }
         res.status(200).json(universeIds);
     }
